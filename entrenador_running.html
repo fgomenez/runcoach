@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RunCoach">
+<title>RunCoach</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --card: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --warn: #ffaa00;
+    --danger: #ff3366;
+    --text: #f0f0ff;
+    --muted: #6b6b8a;
+    --walk-color: #00e5ff;
+    --run-color: #39ff14;
+    --warm-color: #ffaa00;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(0,229,255,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(57,255,20,0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen { 
+    position: relative; 
+    z-index: 1; 
+    min-height: 100dvh;
+    display: none;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
+  }
+  .screen.active { display: flex; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0 8px;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 16px rgba(0,229,255,0.3);
+  }
+  .logo-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ── WEEK SELECTOR ── */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin: 20px 0 10px;
+  }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .week-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 6px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .week-btn span { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .week-btn.selected {
+    background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(57,255,20,0.1));
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0,229,255,0.2);
+  }
+  .week-btn.selected span { color: var(--accent); }
+
+  /* ── PLAN PREVIEW ── */
+  .plan-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 14px 0;
+  }
+  .plan-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .phase-list { display: flex; flex-direction: column; gap: 6px; }
+  .phase-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .phase-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .phase-dot.warm { background: var(--warm-color); box-shadow: 0 0 6px var(--warm-color); }
+  .phase-dot.run { background: var(--run-color); box-shadow: 0 0 6px var(--run-color); }
+  .phase-dot.walk { background: var(--walk-color); box-shadow: 0 0 6px var(--walk-color); }
+
+  .speed-info {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .speed-badge {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 8px 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .speed-badge strong { display: block; font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .speed-badge.walk-badge strong { color: var(--walk-color); }
+  .speed-badge.run-badge strong { color: var(--run-color); }
+
+  /* ── START BUTTON ── */
+  .start-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border: none;
+    border-radius: 18px;
+    padding: 18px;
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: auto;
+    box-shadow: 0 4px 24px rgba(0,229,255,0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .start-btn:active { transform: scale(0.97); box-shadow: 0 2px 12px rgba(0,229,255,0.2); }
+
+  /* ── WORKOUT SCREEN ── */
+  #workout {
+    padding-top: env(safe-area-inset-top, 20px);
+  }
+
+  .workout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+  }
+  .week-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+  .stop-btn {
+    background: rgba(255,51,102,0.15);
+    border: 1px solid rgba(255,51,102,0.3);
+    border-radius: 20px;
+    padding: 6px 16px;
+    color: var(--danger);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* ── PHASE DISPLAY ── */
+  .phase-display {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    gap: 10px;
+    position: relative;
+  }
+
+  .phase-ring-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 10px;
+  }
+  .phase-ring-svg {
+    width: 200px;
+    height: 200px;
+    transform: rotate(-90deg);
+  }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+  .ring-progress {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 565;
+    stroke-dashoffset: 565;
+    transition: stroke-dashoffset 1s linear, stroke 0.5s;
+  }
+  .ring-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .ring-time {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: 2px;
+  }
+  .ring-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .phase-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 3px;
+    text-align: center;
+    transition: color 0.5s;
+  }
+  .phase-name.WARM { color: var(--warm-color); }
+  .phase-name.RUN { color: var(--run-color); }
+  .phase-name.WALK { color: var(--walk-color); }
+
+  .target-speed {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .target-speed strong { color: var(--text); }
+
+  /* ── SPEED METER ── */
+  .speed-meter {
+    width: 100%;
+    padding: 0 20px;
+    margin-bottom: 10px;
+  }
+  .speed-meter-inner {
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+  }
+  .speed-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .speed-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; }
+  .speed-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 1px;
+    transition: color 0.3s;
+  }
+  .speed-unit { font-size: 13px; color: var(--muted); }
+
+  .speed-bar-bg {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .speed-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease, background 0.3s;
+    background: var(--accent);
+  }
+
+  .speed-range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px;
+    margin-bottom: 12px;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--accent);
+  }
+  .stat-lbl { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+
+  /* ── INTERVAL PROGRESS ── */
+  .interval-bar {
+    padding: 0 20px;
+    margin-bottom: 16px;
+  }
+  .interval-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .interval-dots {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .interval-dot {
+    flex: 1;
+    min-width: 12px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .interval-dot.done { background: var(--accent3); }
+  .interval-dot.active { background: var(--accent); animation: pulse-dot 1s infinite; }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 16px 20px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    z-index: 100;
+    transform: translateY(-100%);
+    transition: transform 0.3s;
+  }
+  .alert-banner.show { transform: translateY(0); }
+  .alert-banner.slow { background: var(--danger); color: white; }
+  .alert-banner.next { background: var(--run-color); color: #000; }
+  .alert-banner.nextwalk { background: var(--walk-color); color: #000; }
+
+  /* ── GPS STATUS ── */
+  .gps-status {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .gps-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .gps-dot.ok { background: var(--accent3); box-shadow: 0 0 6px var(--accent3); }
+  .gps-dot.searching { background: var(--warn); animation: blink 1s infinite; }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ── FINISH SCREEN ── */
+  #finish { align-items: center; justify-content: center; text-align: center; }
+  .finish-icon { font-size: 64px; margin-bottom: 16px; }
+  .finish-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .finish-sub { color: var(--muted); font-size: 14px; margin-bottom: 30px; }
+  .finish-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 30px;
+  }
+  .finish-stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .finish-stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--accent);
+  }
+  .finish-stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 1px; }
+
+  .back-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 40px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* ── GPS PERMISSION SCREEN ── */
+  .permission-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10,10,15,0.97);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+    gap: 16px;
+  }
+  .permission-overlay.hidden { display: none; }
+  .permission-icon { font-size: 56px; }
+  .permission-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .permission-text { color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .permission-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border: none;
+    border-radius: 14px;
+    padding: 14px 32px;
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- GPS PERMISSION -->
+<div class="permission-overlay hidden" id="gpsPermission">
+  <div class="permission-icon">📍</div>
+  <div class="permission-title">Necesito tu ubicación</div>
+  <div class="permission-text">Para medir tu velocidad real necesito acceso al GPS. Cuando pulses el botón, el iPhone te pedirá permiso.</div>
+  <button class="permission-btn" onclick="requestGPS()">ACTIVAR GPS</button>
+  <div style="font-size:12px;color:var(--muted);margin-top:8px;">Sin GPS se usará simulación de velocidad</div>
+  <button onclick="startWithoutGPS()" style="background:none;border:none;color:var(--muted);font-size:13px;margin-top:4px;cursor:pointer;">Continuar sin GPS →</button>
+</div>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner" id="alertBanner"></div>
+
+<!-- ══════════════ SCREEN: HOME ══════════════ -->
+<div class="screen active" id="home">
+  <div class="header">
+    <div class="logo-icon">🏃</div>
+    <div class="logo-text">RunCoach</div>
+  </div>
+
+  <div class="section-title">SELECCIONA TU SEMANA</div>
+
+  <div class="week-grid" id="weekGrid"></div>
+
+  <div class="plan-card" id="planPreview">
+    <div class="plan-title" id="planTitle">Semana 1</div>
+    <div class="phase-list" id="phaseList"></div>
+    <div class="speed-info">
+      <div class="speed-badge walk-badge">
+        <strong id="previewWalk">5.5</strong>km/h caminar
+      </div>
+      <div class="speed-badge run-badge">
+        <strong id="previewRun">7.0</strong>km/h trotar
+      </div>
+    </div>
+  </div>
+
+  <div style="height:10px"></div>
+  <button class="start-btn" id="startBtn" onclick="startWorkout()">▶ INICIAR ENTRENAMIENTO</button>
+  <div style="height:env(safe-area-inset-bottom,10px)"></div>
+</div>
+
+<!-- ══════════════ SCREEN: WORKOUT ══════════════ -->
+<div class="screen" id="workout">
+  <div class="workout-header">
+    <div class="week-label" id="workoutWeekLabel">SEMANA 1</div>
+    <button class="stop-btn" onclick="stopWorkout()">■ PARAR</button>
+  </div>
+
+  <div class="phase-display">
+    <div class="phase-ring-container">
+      <svg class="phase-ring-svg" viewBox="0 0 200 200">
+        <circle class="ring-bg" cx="100" cy="100" r="90"/>
+        <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="90"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-time" id="ringTime">05:00</div>
+        <div class="ring-label" id="ringLabel">QUEDAN</div>
+      </div>
+    </div>
+    <div class="phase-name WARM" id="phaseName">CALENTAMIENTO</div>
+    <div class="target-speed" id="targetSpeed">Camina a <strong>5.5 km/h</strong></div>
+  </div>
+
+  <div class="speed-meter">
+    <div class="speed-meter-inner">
+      <div class="speed-row">
+        <div class="speed-label">VELOCIDAD ACTUAL</div>
+        <div>
+          <span class="speed-value" id="speedValue">0.0</span>
+          <span class="speed-unit"> km/h</span>
+        </div>
+      </div>
+      <div class="speed-bar-bg">
+        <div class="speed-bar-fill" id="speedBar" style="width:0%"></div>
+      </div>
+      <div class="speed-range">
+        <span>0</span><span id="speedRangeMax">15 km/h</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-val" id="statElapsed">0:00</div>
+      <div class="stat-lbl">TIEMPO</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statInterval">0/0</div>
+      <div class="stat-lbl">INTERVALO</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statDist">0.0</div>
+      <div class="stat-lbl">KM</div>
+    </div>
+  </div>
+
+  <div class="interval-bar">
+    <div class="interval-label">
+      <span>INTERVALOS</span>
+      <span id="intervalProgress">0 / 0</span>
+    </div>
+    <div class="interval-dots" id="intervalDots"></div>
+  </div>
+
+  <div class="gps-status" id="gpsStatus">
+    <div class="gps-dot searching" id="gpsDot"></div>
+    <span id="gpsText">GPS...</span>
+  </div>
+</div>
+
+<!-- ══════════════ SCREEN: FINISH ══════════════ -->
+<div class="screen" id="finish">
+  <div class="finish-icon">🎉</div>
+  <div class="finish-title">¡COMPLETADO!</div>
+  <div class="finish-sub" id="finishSub">Semana 1 terminada. ¡Buen trabajo!</div>
+  <div class="finish-stats">
+    <div class="finish-stat">
+      <div class="finish-stat-val" id="finishTime">0:00</div>
+      <div class="finish-stat-lbl">TIEMPO TOTAL</div>
+    </div>
+    <div class="finish-stat">
+      <div class="finish-stat-val" id="finishDist">0.0</div>
+      <div class="finish-stat-lbl">KM RECORRIDOS</div>
+    </div>
+    <div class="finish-stat">
+      <div class="finish-stat-val" id="finishAvgSpeed">0.0</div>
+      <div class="finish-stat-lbl">VEL. MEDIA</div>
+    </div>
+    <div class="finish-stat">
+      <div class="finish-stat-val" id="finishIntervals">0</div>
+      <div class="finish-stat-lbl">INTERVALOS</div>
+    </div>
+  </div>
+  <button class="back-btn" onclick="goHome()">← Volver al inicio</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  PLAN DE ENTRENAMIENTO
+// ══════════════════════════════════════════════
+const PLAN = [
+  { week: 1, label: "Sem 1", walkKmh: 5.5, runKmh: 7.0,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 5.5 },
+      ...Array(8).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 30, label: '¡TROTA!', targetKmh: 7.0 },
+        { type: 'WALK', duration: 120, label: 'Camina', targetKmh: 5.5 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 2, label: "Sem 2", walkKmh: 5.5, runKmh: 7.0,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 5.5 },
+      ...Array(7).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 60, label: '¡TROTA!', targetKmh: 7.0 },
+        { type: 'WALK', duration: 120, label: 'Camina', targetKmh: 5.5 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 3, label: "Sem 3", walkKmh: 5.5, runKmh: 7.5,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 5.5 },
+      ...Array(8).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 60, label: '¡TROTA!', targetKmh: 7.5 },
+        { type: 'WALK', duration: 120, label: 'Camina', targetKmh: 5.5 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 4, label: "Sem 4", walkKmh: 6.0, runKmh: 7.5,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 6.0 },
+      ...Array(6).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 120, label: '¡TROTA!', targetKmh: 7.5 },
+        { type: 'WALK', duration: 120, label: 'Camina', targetKmh: 6.0 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 5, label: "Sem 5", walkKmh: 6.0, runKmh: 8.0,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 6.0 },
+      ...Array(7).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 120, label: '¡TROTA!', targetKmh: 8.0 },
+        { type: 'WALK', duration: 60, label: 'Camina', targetKmh: 6.0 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 6, label: "Sem 6", walkKmh: 6.0, runKmh: 8.0,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 6.0 },
+      ...Array(5).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 180, label: '¡TROTA!', targetKmh: 8.0 },
+        { type: 'WALK', duration: 90, label: 'Camina', targetKmh: 6.0 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 7, label: "Sem 7", walkKmh: 6.0, runKmh: 8.5,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 6.0 },
+      ...Array(4).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 300, label: '¡TROTA!', targetKmh: 8.5 },
+        { type: 'WALK', duration: 60, label: 'Camina', targetKmh: 6.0 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 8, label: "Sem 8", walkKmh: 6.0, runKmh: 9.0,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 6.0 },
+      ...Array(2).fill(null).flatMap(() => [
+        { type: 'RUN', duration: 600, label: '¡TROTA!', targetKmh: 9.0 },
+        { type: 'WALK', duration: 60, label: 'Camina', targetKmh: 6.0 },
+      ]),
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 9, label: "Sem 9", walkKmh: 0, runKmh: 9.0,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 6.0 },
+      { type: 'RUN', duration: 1800, label: '¡TROTA!', targetKmh: 9.0 },
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+  { week: 10, label: "Sem 10", walkKmh: 0, runKmh: 9.5,
+    phases: [
+      { type: 'WARM', duration: 300, label: 'Calentamiento', targetKmh: 6.0 },
+      { type: 'RUN', duration: 1800, label: '¡TROTA!', targetKmh: 9.5 },
+      { type: 'WALK', duration: 300, label: 'Enfriamiento', targetKmh: 5.0 }
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════
+//  AUDIO ENGINE
+// ══════════════════════════════════════════════
+let audioCtx = null;
+
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(freq, duration, type = 'sine', volume = 0.6) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration + 0.01);
+  } catch(e) {}
+}
+
+// pi pi pi piiiiii = START RUN
+function soundStartRun() {
+  beep(880, 0.08, 'square', 0.5);
+  setTimeout(() => beep(880, 0.08, 'square', 0.5), 150);
+  setTimeout(() => beep(880, 0.08, 'square', 0.5), 300);
+  setTimeout(() => beep(1100, 0.5, 'square', 0.6), 480);
+}
+
+// pi pi rápido = START WALK
+function soundStartWalk() {
+  beep(660, 0.06, 'sine', 0.5);
+  setTimeout(() => beep(550, 0.06, 'sine', 0.5), 100);
+}
+
+// pitido bajo = TOO SLOW warning
+function soundTooSlow() {
+  beep(330, 0.3, 'triangle', 0.5);
+  setTimeout(() => beep(300, 0.3, 'triangle', 0.4), 350);
+}
+
+// pitido inicio calentamiento
+function soundWarmup() {
+  beep(440, 0.1, 'sine', 0.4);
+  setTimeout(() => beep(550, 0.1, 'sine', 0.4), 150);
+  setTimeout(() => beep(660, 0.2, 'sine', 0.5), 300);
+}
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let selectedWeek = 0;
+let workoutState = null;
+let ticker = null;
+let watchId = null;
+let gpsAvailable = false;
+let simulMode = false;
+let lastSlowAlert = 0;
+let totalDist = 0;
+let speedReadings = [];
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+function init() {
+  const grid = document.getElementById('weekGrid');
+  PLAN.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'week-btn' + (i === 0 ? ' selected' : '');
+    btn.innerHTML = p.label + `<span>${p.walkKmh > 0 ? p.walkKmh + '/' + p.runKmh : p.runKmh + ' km/h'}</span>`;
+    btn.onclick = () => selectWeek(i);
+    grid.appendChild(btn);
+  });
+  updatePreview(0);
+}
+
+function selectWeek(i) {
+  selectedWeek = i;
+  document.querySelectorAll('.week-btn').forEach((b, j) => {
+    b.classList.toggle('selected', j === i);
+  });
+  updatePreview(i);
+}
+
+function updatePreview(i) {
+  const plan = PLAN[i];
+  document.getElementById('planTitle').textContent = 'Semana ' + plan.week;
+  document.getElementById('previewWalk').textContent = plan.walkKmh || '—';
+  document.getElementById('previewRun').textContent = plan.runKmh;
+
+  const list = document.getElementById('phaseList');
+  list.innerHTML = '';
+
+  const warmPhase = plan.phases.find(p => p.type === 'WARM');
+  const runPhases = plan.phases.filter(p => p.type === 'RUN');
+  const walkPhases = plan.phases.filter(p => p.type === 'WALK');
+
+  const items = [
+    { cls: 'warm', text: `Calentamiento: ${fmtDur(warmPhase.duration)}` },
+    { cls: 'run', text: `Trote: ${runPhases.length}× ${fmtDur(runPhases[0]?.duration || 0)} a ${plan.runKmh} km/h` },
+  ];
+  if (plan.walkKmh > 0) {
+    items.push({ cls: 'walk', text: `Caminar: ${walkPhases.length - 1}× ${fmtDur(walkPhases[0]?.duration || 0)} a ${plan.walkKmh} km/h` });
+  }
+  items.push({ cls: 'walk', text: `Enfriamiento: 5 min` });
+
+  items.forEach(it => {
+    const div = document.createElement('div');
+    div.className = 'phase-item';
+    div.innerHTML = `<div class="phase-dot ${it.cls}"></div><span>${it.text}</span>`;
+    list.appendChild(div);
+  });
+}
+
+function fmtDur(s) {
+  if (s >= 60) return (s / 60) + ' min';
+  return s + ' seg';
+}
+
+function fmtTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+// ══════════════════════════════════════════════
+//  GPS
+// ══════════════════════════════════════════════
+function requestGPS() {
+  document.getElementById('gpsPermission').classList.add('hidden');
+  if ('geolocation' in navigator) {
+    watchId = navigator.geolocation.watchPosition(
+      pos => {
+        gpsAvailable = true;
+        const spd = pos.coords.speed != null ? pos.coords.speed * 3.6 : 0;
+        updateSpeed(spd);
+        updateGPSUI(true);
+      },
+      err => {
+        gpsAvailable = false;
+        updateGPSUI(false);
+        if (!simulMode) enableSimulation();
+      },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+    );
+  }
+}
+
+function startWithoutGPS() {
+  document.getElementById('gpsPermission').classList.add('hidden');
+  simulMode = true;
+  enableSimulation();
+  updateGPSUI(false);
+}
+
+let simulInterval = null;
+let simulSpeed = 0;
+let simulTarget = 0;
+
+function enableSimulation() {
+  if (simulInterval) return;
+  simulInterval = setInterval(() => {
+    if (!workoutState) return;
+    const phase = workoutState.phases[workoutState.phaseIdx];
+    simulTarget = phase ? phase.targetKmh : 0;
+    const noise = (Math.random() - 0.5) * 1.2;
+    simulSpeed += (simulTarget - simulSpeed) * 0.15 + noise * 0.3;
+    simulSpeed = Math.max(0, simulSpeed);
+    updateSpeed(simulSpeed);
+  }, 1000);
+}
+
+function updateGPSUI(ok) {
+  document.getElementById('gpsDot').className = 'gps-dot ' + (ok ? 'ok' : (simulMode ? '' : 'searching'));
+  document.getElementById('gpsText').textContent = ok ? 'GPS activo' : (simulMode ? 'Simulación' : 'Sin GPS');
+}
+
+// ══════════════════════════════════════════════
+//  SPEED UPDATE
+// ══════════════════════════════════════════════
+function updateSpeed(kmh) {
+  if (!workoutState) return;
+  workoutState.currentSpeed = Math.max(0, kmh);
+  speedReadings.push(kmh);
+  totalDist += kmh / 3600;
+
+  const phase = workoutState.phases[workoutState.phaseIdx];
+  const minSpeed = phase ? phase.targetKmh * 0.75 : 0;
+
+  const el = document.getElementById('speedValue');
+  el.textContent = kmh.toFixed(1);
+
+  const maxBar = 15;
+  const pct = Math.min(100, (kmh / maxBar) * 100);
+  const bar = document.getElementById('speedBar');
+  bar.style.width = pct + '%';
+
+  if (phase?.type === 'RUN') {
+    bar.style.background = kmh >= minSpeed ? 'var(--run-color)' : 'var(--danger)';
+    el.style.color = kmh >= minSpeed ? 'var(--run-color)' : 'var(--danger)';
+  } else if (phase?.type === 'WALK' || phase?.type === 'WARM') {
+    bar.style.background = 'var(--walk-color)';
+    el.style.color = 'var(--text)';
+  }
+
+  // Slow alert (only during RUN, max once per 20s)
+  if (phase?.type === 'RUN' && kmh < minSpeed && kmh > 0.5) {
+    const now = Date.now();
+    if (now - lastSlowAlert > 20000) {
+      lastSlowAlert = now;
+      soundTooSlow();
+      showAlert('¡MÁS RÁPIDO! Mínimo ' + minSpeed.toFixed(1) + ' km/h', 'slow', 3000);
+    }
+  }
+
+  document.getElementById('statDist').textContent = totalDist.toFixed(2);
+}
+
+// ══════════════════════════════════════════════
+//  START WORKOUT
+// ══════════════════════════════════════════════
+function startWorkout() {
+  // Unlock audio on iOS
+  getAudio();
+
+  const plan = PLAN[selectedWeek];
+  workoutState = {
+    plan,
+    phases: plan.phases,
+    phaseIdx: 0,
+    phaseRemaining: plan.phases[0].duration,
+    elapsed: 0,
+    currentSpeed: 0,
+    intervalCount: 0,
+    runIntervals: plan.phases.filter(p => p.type === 'RUN').length,
+    completedIntervals: 0,
+  };
+  totalDist = 0;
+  speedReadings = [];
+  lastSlowAlert = 0;
+
+  document.getElementById('workoutWeekLabel').textContent = 'SEMANA ' + plan.week;
+  showScreen('workout');
+  buildIntervalDots();
+  renderPhase();
+  soundWarmup();
+
+  ticker = setInterval(tick, 1000);
+
+  // Ask GPS
+  if (!simulMode && !gpsAvailable) {
+    document.getElementById('gpsPermission').classList.remove('hidden');
+  }
+}
+
+function buildIntervalDots() {
+  const ws = workoutState;
+  const runs = ws.runIntervals;
+  const dots = document.getElementById('intervalDots');
+  dots.innerHTML = '';
+  for (let i = 0; i < runs; i++) {
+    const d = document.createElement('div');
+    d.className = 'interval-dot';
+    d.id = 'dot-' + i;
+    dots.appendChild(d);
+  }
+  document.getElementById('intervalProgress').textContent = '0 / ' + runs;
+  document.getElementById('statInterval').textContent = '0/' + runs;
+}
+
+// ══════════════════════════════════════════════
+//  TICK
+// ══════════════════════════════════════════════
+function tick() {
+  if (!workoutState) return;
+  const ws = workoutState;
+  ws.elapsed++;
+  ws.phaseRemaining--;
+
+  // Elapsed time
+  document.getElementById('statElapsed').textContent = fmtTime(ws.elapsed);
+
+  // Ring
+  const phase = ws.phases[ws.phaseIdx];
+  const pct = 1 - ws.phaseRemaining / phase.duration;
+  const circ = 565;
+  document.getElementById('ringProgress').style.strokeDashoffset = circ - circ * pct;
+  document.getElementById('ringTime').textContent = fmtTime(ws.phaseRemaining);
+
+  // Phase transition
+  if (ws.phaseRemaining <= 0) {
+    nextPhase();
+  }
+}
+
+function nextPhase() {
+  const ws = workoutState;
+  ws.phaseIdx++;
+
+  if (ws.phaseIdx >= ws.phases.length) {
+    finishWorkout();
+    return;
+  }
+
+  const prev = ws.phases[ws.phaseIdx - 1];
+  const next = ws.phases[ws.phaseIdx];
+  ws.phaseRemaining = next.duration;
+
+  // Sounds & alerts
+  if (next.type === 'RUN') {
+    ws.completedIntervals; // counted on entry
+    soundStartRun();
+    showAlert('¡HORA DE CORRER!', 'next', 3000);
+  } else if (next.type === 'WALK' && prev.type === 'RUN') {
+    ws.completedIntervals++;
+    updateDots(ws.completedIntervals);
+    soundStartWalk();
+    showAlert('CAMINA — Recupera', 'nextwalk', 3000);
+  } else if (next.type === 'WALK') {
+    soundStartWalk();
+  }
+
+  renderPhase();
+}
+
+function updateDots(completed) {
+  const ws = workoutState;
+  for (let i = 0; i < ws.runIntervals; i++) {
+    const d = document.getElementById('dot-' + i);
+    if (!d) continue;
+    if (i < completed) d.className = 'interval-dot done';
+    else if (i === completed) d.className = 'interval-dot active';
+    else d.className = 'interval-dot';
+  }
+  document.getElementById('intervalProgress').textContent = completed + ' / ' + ws.runIntervals;
+  document.getElementById('statInterval').textContent = completed + '/' + ws.runIntervals;
+}
+
+function renderPhase() {
+  const ws = workoutState;
+  const phase = ws.phases[ws.phaseIdx];
+
+  const nameEl = document.getElementById('phaseName');
+  nameEl.textContent = phase.label.toUpperCase();
+  nameEl.className = 'phase-name ' + phase.type;
+
+  const ring = document.getElementById('ringProgress');
+  if (phase.type === 'RUN') ring.style.stroke = 'var(--run-color)';
+  else if (phase.type === 'WARM') ring.style.stroke = 'var(--warm-color)';
+  else ring.style.stroke = 'var(--walk-color)';
+
+  document.getElementById('ringTime').textContent = fmtTime(phase.duration);
+  document.getElementById('ringProgress').style.strokeDashoffset = 565;
+
+  const speedLabel = phase.type === 'RUN'
+    ? `Trota a <strong>${phase.targetKmh} km/h</strong>`
+    : `Camina a <strong>${phase.targetKmh} km/h</strong>`;
+  document.getElementById('targetSpeed').innerHTML = speedLabel;
+
+  // Activate next run dot
+  if (phase.type === 'RUN') {
+    const activeDot = ws.completedIntervals;
+    updateDots(activeDot);
+    // Mark as active
+    const d = document.getElementById('dot-' + activeDot);
+    if (d) d.className = 'interval-dot active';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  STOP / FINISH
+// ══════════════════════════════════════════════
+function stopWorkout() {
+  if (ticker) clearInterval(ticker);
+  if (simulInterval) { clearInterval(simulInterval); simulInterval = null; }
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+  workoutState = null;
+  showScreen('home');
+}
+
+function finishWorkout() {
+  if (ticker) clearInterval(ticker);
+  if (simulInterval) { clearInterval(simulInterval); simulInterval = null; }
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+
+  const ws = workoutState;
+  const avgSpeed = speedReadings.length ? (speedReadings.reduce((a,b)=>a+b,0)/speedReadings.length).toFixed(1) : '0.0';
+
+  document.getElementById('finishSub').textContent = 'Semana ' + ws.plan.week + ' completada. ¡Buen trabajo!';
+  document.getElementById('finishTime').textContent = fmtTime(ws.elapsed);
+  document.getElementById('finishDist').textContent = totalDist.toFixed(2);
+  document.getElementById('finishAvgSpeed').textContent = avgSpeed;
+  document.getElementById('finishIntervals').textContent = ws.completedIntervals;
+
+  workoutState = null;
+  showScreen('finish');
+}
+
+function goHome() { showScreen('home'); }
+
+// ══════════════════════════════════════════════
+//  ALERT BANNER
+// ══════════════════════════════════════════════
+let alertTimer = null;
+function showAlert(msg, type, duration) {
+  const el = document.getElementById('alertBanner');
+  if (alertTimer) clearTimeout(alertTimer);
+  el.textContent = msg;
+  el.className = 'alert-banner ' + type + ' show';
+  alertTimer = setTimeout(() => { el.classList.remove('show'); }, duration);
+}
+
+// ══════════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
